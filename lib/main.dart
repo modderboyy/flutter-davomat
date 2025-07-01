@@ -13,6 +13,9 @@ import 'history_page.dart';
 import 'login_page.dart';
 import 'admin.dart';
 import 'webview_page.dart';
+import 'from_bolt/theme.dart';
+import 'from_bolt/modern_components.dart';
+import 'from_bolt/auth_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -48,17 +51,9 @@ class _MyAppState extends State<MyApp> with TickerProviderStateMixin {
   int _tapCount = 0;
   DateTime? _lastTapTime;
   String currentAppVersion = '2';
-  String _currentLanguage = 'uz';
+  String _currentLanguage = 'en';
 
   final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
-
-  // Modern color scheme with #8c03e6
-  static const Color primaryColor = Color(0xFF8c03e6);
-  static const Color secondaryColor = Color(0xFFa855f7);
-  static const Color backgroundColor = Color(0xFFF8F9FA);
-  static const Color cardColor = Colors.white;
-  static const Color textPrimary = Color(0xFF1A1A1A);
-  static const Color textSecondary = Color(0xFF6B7280);
 
   final Map<String, Map<String, String>> _localizedStrings = {
     'en': {
@@ -78,8 +73,8 @@ class _MyAppState extends State<MyApp> with TickerProviderStateMixin {
       'app_name': 'Attendance System',
     },
     'uz': {
-      'home_page_nav': 'Home',
-      'history_nav': 'History',
+      'home_page_nav': 'Bosh sahifa',
+      'history_nav': 'Tarix',
       'profile_nav': 'Profil',
       'update_dialog_title': 'Yangi versiya mavjud!',
       'update_dialog_content':
@@ -133,7 +128,7 @@ class _MyAppState extends State<MyApp> with TickerProviderStateMixin {
   Future<void> _loadPreferences() async {
     try {
       SharedPreferences prefs = await SharedPreferences.getInstance();
-      _currentLanguage = prefs.getString('language') ?? 'uz';
+      _currentLanguage = prefs.getString('language') ?? 'en';
       _isLoggedIn = prefs.getBool('isLoggedIn') ?? false;
       _isAdmin = prefs.getBool('isAdmin') ?? false;
       _userId = prefs.getString('userId');
@@ -148,7 +143,7 @@ class _MyAppState extends State<MyApp> with TickerProviderStateMixin {
       }
     } catch (e) {
       print("Error loading preferences: $e");
-      _currentLanguage = 'uz';
+      _currentLanguage = 'en';
       _isLoggedIn = false;
       _isAdmin = false;
       _userId = null;
@@ -174,9 +169,9 @@ class _MyAppState extends State<MyApp> with TickerProviderStateMixin {
 
   String _translate(String key, [Map<String, String>? params]) {
     final langKey =
-        ['en', 'uz', 'ru'].contains(_currentLanguage) ? _currentLanguage : 'uz';
+        ['en', 'uz', 'ru'].contains(_currentLanguage) ? _currentLanguage : 'en';
     String? translatedValue =
-        _localizedStrings[langKey]?[key] ?? _localizedStrings['uz']?[key];
+        _localizedStrings[langKey]?[key] ?? _localizedStrings['en']?[key];
     translatedValue ??= key;
     if (params != null) {
       params.forEach((paramKey, value) {
@@ -211,7 +206,6 @@ class _MyAppState extends State<MyApp> with TickerProviderStateMixin {
           final isActive = userDetails['is_active'] ?? true;
 
           if (!isActive && !isAdminUser) {
-            // User is inactive, logout
             await supabase.auth.signOut();
             loggedIn = false;
             isAdminUser = false;
@@ -394,32 +388,37 @@ class _MyAppState extends State<MyApp> with TickerProviderStateMixin {
 
     showModalBottomSheet(
       context: navigatorKey.currentContext!,
-      backgroundColor: Colors.white,
+      backgroundColor: Colors.transparent,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20.0)),
       ),
       builder: (BuildContext errorDialogContext) {
-        final theme = Theme.of(errorDialogContext);
-        return Padding(
-          padding: const EdgeInsets.all(20.0),
+        return ModernCard(
+          margin: EdgeInsets.all(20),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: <Widget>[
               Icon(Icons.system_update_alt_rounded,
-                  size: 50, color: primaryColor),
+                  size: 50, color: ModernTheme.primaryColor),
               const SizedBox(height: 16),
               Text(
                 _translate('update_dialog_title'),
-                style: theme.textTheme.titleLarge
-                    ?.copyWith(fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  color: ModernTheme.textPrimary,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 8),
               Text(
                 _translate(
                     'update_dialog_content', {'version_number': latestVersion}),
-                style: theme.textTheme.titleMedium,
+                style: TextStyle(
+                  color: ModernTheme.textSecondary,
+                  fontSize: 16,
+                ),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 24),
@@ -427,29 +426,16 @@ class _MyAppState extends State<MyApp> with TickerProviderStateMixin {
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: <Widget>[
                   Expanded(
-                    child: OutlinedButton(
-                      style: OutlinedButton.styleFrom(
-                        side: BorderSide(color: primaryColor),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12.0)),
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                      ),
-                      child: Text(_translate('update_dialog_later'),
-                          style: TextStyle(color: primaryColor)),
+                    child: ModernButton(
+                      text: _translate('update_dialog_later'),
                       onPressed: () => Navigator.of(errorDialogContext).pop(),
+                      isOutlined: true,
                     ),
                   ),
                   const SizedBox(width: 16),
                   Expanded(
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: primaryColor,
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12.0)),
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                      ),
-                      child: Text(_translate('update_dialog_update')),
+                    child: ModernButton(
+                      text: _translate('update_dialog_update'),
                       onPressed: () {
                         Navigator.of(errorDialogContext).pop();
                         _launchUpdateLink(updateLink);
@@ -480,121 +466,34 @@ class _MyAppState extends State<MyApp> with TickerProviderStateMixin {
     );
   }
 
-  Future<void> _showErrorDialog(String message) async {
-    if (navigatorKey.currentContext == null || !mounted) return;
-    showDialog(
-      context: navigatorKey.currentContext!,
-      builder: (BuildContext dialogCtx) => AlertDialog(
-        title: Text(_translate('update_error_title')),
-        content: Text(message),
-        actions: <Widget>[
-          TextButton(
-            child: const Text('OK'),
-            onPressed: () => Navigator.of(dialogCtx).pop(),
-          ),
-        ],
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
-    final themeData = ThemeData(
-      primarySwatch: MaterialColor(0xFF8c03e6, {
-        50: Color(0xFFF3EFFF),
-        100: Color(0xFFE1D7FF),
-        200: Color(0xFFC4AFFF),
-        300: Color(0xFFA687FF),
-        400: Color(0xFF8A5FFF),
-        500: Color(0xFF8c03e6),
-        600: Color(0xFF7B02C7),
-        700: Color(0xFF6A02A8),
-        800: Color(0xFF590189),
-        900: Color(0xFF48016A),
-      }),
-      scaffoldBackgroundColor: backgroundColor,
-      colorScheme: ColorScheme.fromSeed(
-        seedColor: primaryColor,
-        brightness: Brightness.light,
-        background: backgroundColor,
-        surface: cardColor,
-      ),
-      visualDensity: VisualDensity.adaptivePlatformDensity,
-      fontFamily: 'SF Pro Display',
-      appBarTheme: AppBarTheme(
-        backgroundColor: backgroundColor,
-        foregroundColor: textPrimary,
-        elevation: 0,
-        surfaceTintColor: Colors.transparent,
-        iconTheme: IconThemeData(color: textSecondary),
-        titleTextStyle: TextStyle(
-          color: textPrimary,
-          fontSize: 20,
-          fontWeight: FontWeight.w600,
-        ),
-      ),
-      cardTheme: CardTheme(
-        color: cardColor,
-        elevation: 0,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16.0),
-          side: BorderSide(color: Colors.grey.shade200, width: 1),
-        ),
-        margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-      ),
-      elevatedButtonTheme: ElevatedButtonThemeData(
-        style: ElevatedButton.styleFrom(
-          backgroundColor: primaryColor,
-          foregroundColor: Colors.white,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12.0),
-          ),
-          padding: EdgeInsets.symmetric(vertical: 16, horizontal: 24),
-          elevation: 0,
-        ),
-      ),
-      inputDecorationTheme: InputDecorationTheme(
-        filled: true,
-        fillColor: Colors.grey[50],
-        contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12.0),
-          borderSide: BorderSide(color: Colors.grey.shade300),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12.0),
-          borderSide: BorderSide(color: Colors.grey.shade300, width: 1.0),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12.0),
-          borderSide: BorderSide(color: primaryColor, width: 2.0),
-        ),
-        hintStyle: TextStyle(color: textSecondary),
-      ),
-    );
-
     return MaterialApp(
       navigatorKey: navigatorKey,
       title: _translate('app_name'),
-      theme: themeData,
+      theme: ModernTheme.darkTheme,
       debugShowCheckedModeBanner: false,
       home: Builder(builder: (context) {
-        return Scaffold(
-          backgroundColor: backgroundColor,
-          body: GestureDetector(
-            onTap: _handleTap,
-            behavior: HitTestBehavior.translucent,
-            child: _isLoading
-                ? Center(
-                    child: CircularProgressIndicator(
-                      valueColor: AlwaysStoppedAnimation<Color>(primaryColor),
-                    ),
-                  )
-                : _isLoggedIn
-                    ? _isAdmin
-                        ? AdminPage()
-                        : _buildUserInterface(context)
-                    : ModernLoginPage(onLoginSuccess: _setLoggedIn),
+        return Theme(
+          data: ModernTheme.darkTheme,
+          child: Scaffold(
+            backgroundColor: ModernTheme.backgroundColor,
+            body: GestureDetector(
+              onTap: _handleTap,
+              behavior: HitTestBehavior.translucent,
+              child: _isLoading
+                  ? Center(
+                      child: CircularProgressIndicator(
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                            ModernTheme.primaryColor),
+                      ),
+                    )
+                  : _isLoggedIn
+                      ? _isAdmin
+                          ? AdminPage()
+                          : _buildUserInterface(context)
+                      : ModernLoginPage(onLoginSuccess: _setLoggedIn),
+            ),
           ),
         );
       }),
@@ -613,120 +512,25 @@ class _MyAppState extends State<MyApp> with TickerProviderStateMixin {
   }
 
   Widget _buildModernBottomBar(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: cardColor,
-        border: Border(
-          top: BorderSide(color: Colors.grey.shade200, width: 1.0),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 20,
-            offset: Offset(0, -5),
-          ),
-        ],
-      ),
-      child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 12.0),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _buildBottomNavItem(
-                icon: CupertinoIcons.clock,
-                label: _translate('history_nav'),
-                index: 1,
-                isSelected: _currentTab == 1,
-              ),
-              _buildQRButton(context),
-              _buildBottomNavItem(
-                icon: CupertinoIcons.person,
-                label: _translate('profile_nav'),
-                index: 2,
-                isSelected: _currentTab == 2,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildBottomNavItem({
-    required IconData icon,
-    required String label,
-    required int index,
-    required bool isSelected,
-  }) {
-    return GestureDetector(
-      onTap: () {
-        if (index == 0) {
-          setState(() => _currentTab = 0);
-        } else {
-          setState(() => _currentTab = index);
-        }
+    return ModernBottomNavBar(
+      currentIndex: _currentTab,
+      onTap: (index) {
+        setState(() => _currentTab = index);
       },
-      child: AnimatedContainer(
-        duration: Duration(milliseconds: 200),
-        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        decoration: BoxDecoration(
-          color:
-              isSelected ? primaryColor.withOpacity(0.1) : Colors.transparent,
-          borderRadius: BorderRadius.circular(12),
+      items: [
+        BottomNavItem(
+          icon: CupertinoIcons.qrcode_viewfinder,
+          label: _translate('home_page_nav'),
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              icon,
-              color: isSelected ? primaryColor : textSecondary,
-              size: 24,
-            ),
-            SizedBox(height: 4),
-            Text(
-              label,
-              style: TextStyle(
-                color: isSelected ? primaryColor : textSecondary,
-                fontSize: 12,
-                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-              ),
-            ),
-          ],
+        BottomNavItem(
+          icon: CupertinoIcons.clock,
+          label: _translate('history_nav'),
         ),
-      ),
-    );
-  }
-
-  Widget _buildQRButton(BuildContext context) {
-    return GestureDetector(
-      onTap: () {
-        setState(() => _currentTab = 0);
-      },
-      child: Container(
-        width: 64,
-        height: 64,
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [primaryColor, secondaryColor],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(
-              color: primaryColor.withOpacity(0.3),
-              blurRadius: 12,
-              offset: Offset(0, 4),
-            ),
-          ],
+        BottomNavItem(
+          icon: CupertinoIcons.person,
+          label: _translate('profile_nav'),
         ),
-        child: Icon(
-          CupertinoIcons.qrcode_viewfinder,
-          color: Colors.white,
-          size: 28,
-        ),
-      ),
+      ],
     );
   }
 
